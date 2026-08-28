@@ -34,7 +34,7 @@ Results at handoff:
 - `npm test`: 7/7 unit tests passed.
 - `npm run test:e2e`: core source-aware list flow, axe serious/critical scan, keyboard skip path, and a real `context.setOffline(true)` saved-state reload passed.
 - `npm run build`: passed; output has `dist/index.html` at its root.
-- Production bundle: 26.33 KB JS / 16.31 KB CSS uncompressed (10.14 KB / 4.34 KB gzip), well inside the 200 KB / 50 KB budgets.
+- Production bundle: 26.44 KB JS / 16.31 KB CSS uncompressed (10.17 KB / 4.34 KB gzip), well inside the 200 KB / 50 KB budgets.
 - Hero: 44/128 KB responsive AVIF, 89/255 KB responsive WebP, and a 112 KB JPEG fallback; every served option is below 300 KB.
 - Factory `verify-url.sh`: HTTP 200; title present; `lang="en"`; exactly one h1; main landmark present; zero images missing alt; zero console/page errors. The script’s naive hidden-button check was resolved by giving the restore submit button an explicit accessible label.
 - Lighthouse 12.8.2 mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100. FCP 0.9 s, LCP 1.5 s, TBT 0 ms, CLS 0.
