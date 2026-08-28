@@ -1,0 +1,12 @@
+{
+  "slug": "meal-plan-pantry-check",
+  "title": "Meal Plan Pantry Check",
+  "territory": "utilities",
+  "user": "People who keep a personal recipe list and want a deterministic shopping list that subtracts only what they personally confirm is in the pantry.",
+  "smallest_useful_product": "Offline PWA where users paste a few structured recipes or ingredient lines, select servings, normalize simple units, tick pantry items, and export a grouped checklist with source links.",
+  "success_measure": "At least 70% of pilot meal plans produce a list in under five minutes, and users report fewer than two forgotten ingredients per four planned meals.",
+  "artifact_class": "pwa-offline",
+  "monetization": "one-time",
+  "constraints": "Ingredient parsing must expose uncertainties; units are not nutrition/medical measurements; do not scrape protected recipe content or retain URLs remotely.",
+  "why_distinct": "It is an explainable pantry-confirmed list builder, not a recipe-content app or a thin prompt around meal planning."
+}
