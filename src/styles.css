@@ -52,6 +52,9 @@ h1 em { color: var(--signal); font-weight: 400; }
 .status { margin: 12px 0 0; padding: 10px 14px; border-left: 5px solid; background: var(--sheet); font: 14px/1.4 var(--utility); }
 .status.offline { border-color: var(--signal); }.status.error { border-color: var(--danger); }.status.note { border-color: var(--rule); }.status.update { border-color: var(--confirmed); }
 .status button { min-height: 44px; padding: 0 8px; background: transparent; font-weight: 700; text-decoration: underline; }
+.demo-status { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-color: var(--confirmed); }
+.demo-status span { display: flex; align-items: center; gap: 12px; }
+.demo-status a { min-height: 44px; display: inline-flex; align-items: center; font-weight: 700; }
 main { max-width: 1440px; margin: auto; padding: 0 clamp(16px, 4vw, 64px) 64px; }
 .loading { min-height: 40vh; display: grid; place-content: center; gap: 16px; text-align: center; font: 700 14px var(--utility); letter-spacing: .08em; text-transform: uppercase; }
 .loading span { width: 56px; height: 8px; margin: auto; background: repeating-linear-gradient(90deg, var(--ink) 0 8px, transparent 8px 12px); animation: loading 1s steps(3) infinite; }
@@ -62,6 +65,7 @@ main { max-width: 1440px; margin: auto; padding: 0 clamp(16px, 4vw, 64px) 64px; 
 .hero h2 { margin: 12px 0 20px; font: 400 clamp(45px, 5vw, 76px)/.92 var(--display); letter-spacing: -.045em; }
 .hero-copy > p:not(.kicker) { max-width: 35rem; margin: 0 0 24px; font-size: 18px; }
 .text-link { align-self: start; min-height: 44px; display: inline-flex; align-items: center; color: var(--signal); font: 700 14px var(--utility); text-transform: uppercase; letter-spacing: .08em; }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 .hero figure { position: relative; margin: 0; min-height: 520px; overflow: hidden; background: #d7ccba; }
 .hero picture, .hero img { width: 100%; height: 100%; }
 .hero img { object-fit: cover; filter: contrast(1.06) saturate(.7); }
@@ -85,6 +89,7 @@ main { max-width: 1440px; margin: auto; padding: 0 clamp(16px, 4vw, 64px) 64px; 
 input, textarea { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 0; background: var(--sheet); font-size: 16px; }
 textarea { resize: vertical; line-height: 1.5; }
 input:hover, textarea:hover { border-color: var(--ink); }
+input[aria-invalid='true'], textarea[aria-invalid='true'] { border: 2px solid var(--danger); }
 .ingredients-field { margin-top: 16px; }
 .field-help { max-width: 65ch; margin: 8px 0; color: var(--ink-soft); font: 13px/1.45 var(--utility); }
 .parse-preview { min-height: 27px; display: flex; gap: 12px; align-items: center; color: var(--ink-soft); font: 12px var(--utility); }
@@ -192,6 +197,7 @@ footer > div:nth-child(2) { display: flex; flex-wrap: wrap; gap: 20px; font-size
 
 @media (max-width: 560px) {
   .dateline span:nth-child(2) { display: none; }
+  .demo-status { align-items: flex-start; flex-direction: column; }
   .masthead { padding-inline: 16px; }
   main { padding-inline: 16px; }
   h1 { font-size: 49px; }

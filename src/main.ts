@@ -5,16 +5,22 @@ import { cachedLicenseState, captureLicense, checkoutUrl, storeLicense, verifyLi
 import type { AppState, ConsolidatedIngredient, Recipe } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
+const demoMode = location.pathname.replace(/\/$/, '') === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
 let state: AppState = emptyState();
 let loading = true;
 let storageNotice = '';
 let formError = '';
+let formErrorField = '';
 let editingId = '';
+type RecipeDraft = { title: string; servings: string; sourceUrl: string; ingredientsText: string };
+let recipeDraft: RecipeDraft | null = null;
 let online = navigator.onLine;
 let updateReady = false;
 let reloadForUpdate = false;
-let licenseToken = captureLicense();
+let licenseToken = demoMode ? '' : captureLicense();
 let license: LicenseState = cachedLicenseState(licenseToken);
+
+if (demoMode) document.title = 'Demo — Meal Plan Pantry Check';
 
 const esc = (value: unknown): string => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 const uid = (): string => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -22,8 +28,22 @@ const safeSource = (value: string): string => {
   try { const url = new URL(value); return /^https?:$/.test(url.protocol) ? url.href : ''; } catch { return ''; }
 };
 
+function sampleState(): AppState {
+  const makeRecipe = (id: string, title: string, servings: number, sourceUrl: string, ingredientsText: string): Recipe => ({
+    id, title, baseServings: servings, targetServings: servings, sourceUrl, ingredientsText,
+    ingredients: parseIngredients(ingredientsText), selected: true, updatedAt: Date.now(),
+  });
+  const recipes = [
+    makeRecipe('demo-pasta', 'Lemon herb pasta', 4, 'https://example.com/lemon-pasta', '400 g spaghetti\n3 tbsp olive oil\n2 lemons\n2 cloves garlic\nsalt to taste'),
+    makeRecipe('demo-tacos', 'Black bean tacos', 4, 'https://example.com/bean-tacos', '2 cans black beans\n8 tortillas\n1 onion\n2 limes\n1 tsp cumin'),
+    makeRecipe('demo-bowls', 'Roast vegetable bowls', 4, '', '600 g sweet potatoes\n2 tbsp olive oil\n300 g broccoli\n1 cup brown rice\n4 tbsp tahini'),
+  ];
+  return { version: 1, recipes, pantry: {}, view: 'recipes', updatedAt: Date.now() };
+}
+
 function persist(): void {
   state.updatedAt = Date.now();
+  if (demoMode) return;
   saveState(state).then(() => {
     if (storageNotice) { storageNotice = ''; render(); }
   }).catch(() => {
@@ -63,6 +83,7 @@ function stepButton(view: AppState['view'], number: string, label: string, meta:
 function statusBars(): string {
   return `
     <div class="status-stack" aria-live="polite">
+      ${demoMode ? '<div class="status demo-status"><strong>Demo — sample data, nothing is saved</strong><span><button type="button" data-action="reset-demo">Reset demo</button><a href="/">Start for real</a></span></div>' : ''}
       ${!online ? '<p class="status offline"><strong>Offline edition.</strong> Your saved recipes and list still work on this device.</p>' : ''}
       ${storageNotice ? `<p class="status ${storageNotice.startsWith('Shopping list copied') ? 'note' : 'error'}">${esc(storageNotice)}</p>` : ''}
       ${license.notice ? `<p class="status note">${esc(license.notice)} ${!license.unlocked ? `<a href="${checkoutUrl}">View household edition</a>` : ''}</p>` : ''}
@@ -73,7 +94,7 @@ function statusBars(): string {
 function recipesView(): string {
   return `
     ${state.recipes.length === 0 ? `<section class="hero" aria-labelledby="start-title">
-      <div class="hero-copy"><p class="kicker">No inventory fiction. No mystery arithmetic.</p><h2 id="start-title">Recipes in.<br>Certainty out.</h2><p>Paste ingredient lines from recipes you already use. Pantry Check scales the amounts, shows its work, and waits for you to say what is on the shelf.</p><a class="text-link" href="#recipe-form">Start with a recipe ↓</a></div>
+      <div class="hero-copy"><p class="kicker">No inventory fiction. No mystery arithmetic.</p><h2 id="start-title">Recipes in.<br>Certainty out.</h2><p>Paste ingredient lines from recipes you already use. Pantry Check scales the amounts, shows its work, and waits for you to say what is on the shelf.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><a class="text-link" href="#recipe-form">Start with a recipe ↓</a></div></div>
       <figure><picture><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.avif" type="image/avif"><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.webp" type="image/webp"><source srcset="/assets/pantry-ledger-1536.avif" type="image/avif"><source srcset="/assets/pantry-ledger-1536.webp" type="image/webp"><img src="/assets/pantry-ledger-960.jpg" width="960" height="640" fetchpriority="high" decoding="async" alt="Recipe clippings and pantry jars feeding into a single hand-checked grocery ledger"></picture><figcaption>ONE LIST · EVERY SOURCE ACCOUNTED FOR</figcaption></figure>
     </section>` : ''}
     <div class="editorial-grid">
@@ -91,15 +112,24 @@ function recipesView(): string {
 
 function recipeForm(): string {
   const edit = state.recipes.find((recipe) => recipe.id === editingId);
+  const draft: RecipeDraft = recipeDraft ?? {
+    title: edit?.title ?? '',
+    servings: String(edit?.baseServings ?? 4),
+    sourceUrl: edit?.sourceUrl ?? '',
+    ingredientsText: edit?.ingredientsText ?? '',
+  };
+  const invalid = (field: keyof RecipeDraft): string => formError && formErrorField === field
+    ? ' aria-invalid="true" aria-describedby="form-error"'
+    : '';
   return `<form id="recipe-form" class="recipe-form" novalidate>
     <div class="form-heading"><h3>${edit ? 'Revise clipping' : 'Add a recipe'}</h3><span>Paste, don’t scrape</span></div>
     ${formError ? `<p class="form-error" id="form-error" role="alert">${esc(formError)}</p>` : ''}
     <div class="field-grid">
-      <label class="field wide"><span>Recipe name <b aria-hidden="true">*</b></span><input name="title" required value="${esc(edit?.title)}" autocomplete="off" placeholder="Tuesday tomato pasta"></label>
-      <label class="field"><span>Recipe serves <b aria-hidden="true">*</b></span><input name="servings" required min="0.25" step="0.25" type="number" inputmode="decimal" value="${edit?.baseServings ?? 4}"></label>
-      <label class="field wide"><span>Source link <small>(optional)</small></span><input name="sourceUrl" type="url" value="${esc(edit?.sourceUrl)}" placeholder="https://…"></label>
+      <label class="field wide"><span>Recipe name <b aria-hidden="true">*</b></span><input name="title" required value="${esc(draft.title)}" autocomplete="off" placeholder="Tuesday tomato pasta"${invalid('title')}></label>
+      <label class="field"><span>Recipe serves <b aria-hidden="true">*</b></span><input name="servings" required min="0.25" step="0.25" type="number" inputmode="decimal" value="${esc(draft.servings)}"${invalid('servings')}></label>
+      <label class="field wide"><span>Source link <small>(optional)</small></span><input name="sourceUrl" type="url" value="${esc(draft.sourceUrl)}" placeholder="https://…"${invalid('sourceUrl')}></label>
     </div>
-    <label class="field ingredients-field"><span>Ingredients — one per line <b aria-hidden="true">*</b></span><textarea name="ingredients" required rows="7" aria-describedby="line-help" placeholder="2 tbsp olive oil&#10;1 1/2 cups rice&#10;salt to taste">${esc(edit?.ingredientsText)}</textarea></label>
+    <label class="field ingredients-field"><span>Ingredients — one per line <b aria-hidden="true">*</b></span><textarea name="ingredients" required rows="7" aria-describedby="${formError && formErrorField === 'ingredientsText' ? 'line-help form-error' : 'line-help'}"${formError && formErrorField === 'ingredientsText' ? ' aria-invalid="true"' : ''} placeholder="2 tbsp olive oil&#10;1 1/2 cups rice&#10;salt to taste">${esc(draft.ingredientsText)}</textarea></label>
     <p class="field-help" id="line-help">Use “2 tbsp olive oil” or “1 ½ cups rice”. Keep preparation notes in the name; uncertain lines are flagged, never guessed.</p>
     <div id="parse-preview" class="parse-preview" aria-live="polite"></div>
     <div class="form-actions"><button class="button primary" type="submit">${edit ? 'Save revision' : 'Add recipe'}</button>${edit ? '<button class="button quiet" type="button" data-action="cancel-edit">Cancel</button>' : ''}</div>
@@ -200,6 +230,13 @@ function changeServings(id: string, value: number): void {
   persist(); render();
 }
 
+function rejectRecipe(message: string, field: keyof RecipeDraft): void {
+  formError = message;
+  formErrorField = field;
+  render();
+  document.querySelector<HTMLElement>(`[name="${field === 'ingredientsText' ? 'ingredients' : field}"]`)?.focus();
+}
+
 app.addEventListener('input', (event) => {
   const target = event.target as HTMLInputElement | HTMLTextAreaElement;
   if (target.matches('textarea[name="ingredients"]')) updatePreview();
@@ -231,18 +268,26 @@ app.addEventListener('submit', async (event) => {
   const form = event.target as HTMLFormElement;
   if (form.id === 'recipe-form') {
     const data = new FormData(form);
-    const title = String(data.get('title') ?? '').trim();
-    const ingredientsText = String(data.get('ingredients') ?? '').trim();
-    const baseServings = Number(data.get('servings'));
-    const sourceUrl = String(data.get('sourceUrl') ?? '').trim();
-    if (!title || !ingredientsText || !Number.isFinite(baseServings) || baseServings <= 0) { formError = 'Add a recipe name, valid serving count, and at least one ingredient line.'; render(); document.querySelector<HTMLElement>('#form-error')?.focus(); return; }
-    if (sourceUrl) { try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { formError = 'The source link must start with http:// or https://.'; render(); return; } }
-    if (!editingId && !license.unlocked && state.recipes.length >= 4) { formError = 'The free edition holds four recipes. Remove one, or unlock the household edition for unlimited recipes.'; render(); return; }
+    recipeDraft = {
+      title: String(data.get('title') ?? ''),
+      servings: String(data.get('servings') ?? ''),
+      sourceUrl: String(data.get('sourceUrl') ?? ''),
+      ingredientsText: String(data.get('ingredients') ?? ''),
+    };
+    const title = recipeDraft.title.trim();
+    const ingredientsText = recipeDraft.ingredientsText.trim();
+    const baseServings = Number(recipeDraft.servings);
+    const sourceUrl = recipeDraft.sourceUrl.trim();
+    if (!title) { rejectRecipe('Add a recipe name, valid serving count, and at least one ingredient line.', 'title'); return; }
+    if (!Number.isFinite(baseServings) || baseServings <= 0) { rejectRecipe('Add a recipe name, valid serving count, and at least one ingredient line.', 'servings'); return; }
+    if (!ingredientsText) { rejectRecipe('Add a recipe name, valid serving count, and at least one ingredient line.', 'ingredientsText'); return; }
+    if (sourceUrl) { try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { rejectRecipe('The source link must start with http:// or https://.', 'sourceUrl'); return; } }
+    if (!editingId && !license.unlocked && state.recipes.length >= 4) { rejectRecipe('The free edition holds four recipes. Remove one, or unlock the household edition for unlimited recipes.', 'title'); return; }
     const parsed = parseIngredients(ingredientsText);
     const old = state.recipes.find((recipe) => recipe.id === editingId);
     const recipe: Recipe = { id: old?.id ?? uid(), title, baseServings, targetServings: old ? old.targetServings * baseServings / old.baseServings : baseServings, sourceUrl, ingredientsText, ingredients: parsed, selected: old?.selected ?? true, updatedAt: Date.now() };
     if (old) state.recipes[state.recipes.indexOf(old)] = recipe; else state.recipes.push(recipe);
-    editingId = ''; formError = ''; persist(); render(); document.querySelector('.clippings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    editingId = ''; recipeDraft = null; formError = ''; formErrorField = ''; persist(); render(); document.querySelector('.clippings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   if (form.id === 'license-form') {
     const token = String(new FormData(form).get('license') ?? '').trim();
@@ -259,8 +304,8 @@ app.addEventListener('click', async (event) => {
   if (view) { state.view = view; persist(); render(); document.querySelector('#main')?.scrollIntoView(); return; }
   const action = button.dataset.action;
   const recipe = state.recipes.find((item) => item.id === button.dataset.id);
-  if (action === 'cancel-edit') { editingId = ''; formError = ''; render(); }
-  if (action === 'edit-recipe' && recipe) { editingId = recipe.id; state.view = 'recipes'; render(); document.querySelector('#recipe-form')?.scrollIntoView({ behavior: 'smooth' }); }
+  if (action === 'cancel-edit') { editingId = ''; recipeDraft = null; formError = ''; formErrorField = ''; render(); }
+  if (action === 'edit-recipe' && recipe) { editingId = recipe.id; recipeDraft = null; formError = ''; formErrorField = ''; state.view = 'recipes'; render(); document.querySelector('#recipe-form')?.scrollIntoView({ behavior: 'smooth' }); }
   if (action === 'delete-recipe' && recipe && confirm(`Remove “${recipe.title}” and its ingredient lines? This cannot be undone.`)) { state.recipes = state.recipes.filter((item) => item.id !== recipe.id); persist(); render(); }
   if (action === 'servings-down' && recipe) changeServings(recipe.id, recipe.targetServings - .25);
   if (action === 'servings-up' && recipe) changeServings(recipe.id, recipe.targetServings + .25);
@@ -270,13 +315,15 @@ app.addEventListener('click', async (event) => {
   if (action === 'copy-list') { try { await navigator.clipboard.writeText(shoppingText()); storageNotice = 'Shopping list copied to the clipboard.'; } catch { storageNotice = 'Clipboard access was blocked. Use Export CSV instead.'; } render(); }
   if (action === 'print') window.print();
   if (action === 'reload-update') { reloadForUpdate = true; navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' }); }
+  if (action === 'reset-demo' && demoMode) { state = sampleState(); editingId = ''; recipeDraft = null; formError = ''; formErrorField = ''; storageNotice = ''; render(); }
 });
 
 window.addEventListener('online', () => { online = true; render(); });
 window.addEventListener('offline', () => { online = false; render(); });
 
 async function start(): Promise<void> {
-  try { state = await loadState(); } catch { storageNotice = 'Local storage is unavailable. You can still make a list in this tab and export it.'; }
+  if (demoMode) state = sampleState();
+  else try { state = await loadState(); } catch { storageNotice = 'Local storage is unavailable. You can still make a list in this tab and export it.'; }
   loading = false; render();
   if (licenseToken) { license = await verifyLicense(licenseToken); render(); }
   if ('serviceWorker' in navigator) {

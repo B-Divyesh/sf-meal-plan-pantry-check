@@ -1,4 +1,4 @@
-const VERSION = 'pantry-ledger-v3';
+const VERSION = 'pantry-ledger-v4';
 const SHELL = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 const CORE = ['/', '/offline.html', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/assets/pantry-ledger-960.avif', '/assets/pantry-ledger-960.webp'];

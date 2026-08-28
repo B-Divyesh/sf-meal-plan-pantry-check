@@ -4,6 +4,8 @@ An offline-first household utility that turns selected recipes into one explaina
 
 Live: <https://meal-plan-pantry-check.sociobot.in>
 
+One-click sample: <https://meal-plan-pantry-check.sociobot.in/demo>. Demo changes stay in memory and never read or replace your saved ledger.
+
 ## Who it is for
 
 People with a small personal recipe collection who want reliable quantities without maintaining a full inventory system, uploading recipe content, or trusting an opaque generated list.
@@ -29,11 +31,12 @@ Requires Node.js 20 or newer.
 npm ci
 npm run dev
 npm test
+npm run typecheck
 npm run build
 npm run test:e2e
 ```
 
-`npm run build` is the deployment command. It produces the static site at `dist/`, with `dist/index.html` at its root. The browser suite pins Playwright 1.58.2 and covers the core planning flow, axe accessibility checks, and an offline reload.
+`npm run build` is the deployment command. It produces the static site at `dist/`, with `dist/index.html` at its root. The browser suite pins Playwright 1.58.2 and covers the core planning flow, claims, axe accessibility checks, and offline reloads.
 
 ## Data and billing
 
@@ -43,7 +46,7 @@ See [the source brief](.factory/brief.json), [visual system](.factory/design.md)
 
 ## Deployment
 
-Upload the contents of `dist/` to any static host with HTTPS. Preserve `sw.js` at the origin root and serve unknown navigation paths with `index.html`; the checked-in `/privacy/` and `/terms/` documents are emitted as concrete HTML paths. Infrastructure, DNS, and billing product registration are handled outside this repository.
+Upload the contents of `dist/` to Azure Static Web Apps with HTTPS. The built `staticwebapp.config.json` sets navigation fallback, immutable asset caching, manifest MIME, updateable HTML/service-worker caching, and browser security headers. Run `npm run verify:live` after deployment to compare `dist/` with production and check those policies plus license-endpoint rate limiting. Infrastructure, DNS, and billing product registration are handled outside this repository.
 
 ## License
 
