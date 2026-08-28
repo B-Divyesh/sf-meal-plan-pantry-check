@@ -70,6 +70,9 @@
       "/sitemap.xml"
     ]
   },
+  "mimeTypes": {
+    ".webmanifest": "application/manifest+json"
+  },
   "globalHeaders": {
     "Content-Security-Policy": "default-src 'self'; base-uri 'self'; connect-src 'self' https://api.sociobot.in; font-src 'self'; form-action 'self' https://api.sociobot.in; frame-ancestors 'none'; img-src 'self' data: blob:; manifest-src 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self'",
     "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=(), usb=()",

@@ -5,6 +5,7 @@ type Route = { route: string; headers?: Record<string, string> };
 type StaticWebAppConfig = {
   routes: Route[];
   globalHeaders: Record<string, string>;
+  mimeTypes: Record<string, string>;
 };
 
 const config = JSON.parse(readFileSync('public/staticwebapp.config.json', 'utf8')) as StaticWebAppConfig;
@@ -27,6 +28,7 @@ describe('Azure Static Web Apps response policy', () => {
 
   test('serves the manifest with its registered media type', () => {
     expect(route('/manifest.webmanifest').headers?.['Content-Type']).toBe('application/manifest+json; charset=utf-8');
+    expect(config.mimeTypes['.webmanifest']).toBe('application/manifest+json');
   });
 
   test('ships CSP, browser permissions, and framing protections', () => {
