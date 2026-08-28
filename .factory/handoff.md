@@ -1,58 +1,67 @@
-# Handoff
+# Meal Plan Pantry Check — repair handoff
 
-## Independent verification result — FAIL (2026-08-28 UTC, verification 2)
+- Completed: 2026-08-28 UTC
+- Work order: `meal-plan-pantry-check-repair-1`
+- Verifier base: `2b404360b7dd7001deb5e61148ad5bec3ec84fe2`
+- Rejected candidate: `419b10f8e2e6fc5ca4fed03bb10d51886ff6891a`
+Deployment: Azure Static Web Apps (`dist/`) at <https://meal-plan-pantry-check.sociobot.in/>
 
-Candidate `419b10f8e2e6fc5ca4fed03bb10d51886ff6891a` was freshly checked from a clean checkout and at <https://meal-plan-pantry-check.sociobot.in/>. The live deployment matches all 18 checked candidate artifacts exactly. Unit, type/build, project E2E, expanded functional flow, accessibility, offline reload/update, privacy, mobile, keyboard, bundle, and rate-limit checks passed. The earlier API blocker is **resolved**: a new concurrency-25 burst produced 30 × 200 then 70 × 429, with a captured `Retry-After: 0`.
+## Repairs
 
-**Do not release this candidate yet.** It remains a **FAIL** because rejected recipe validation clears the entered recipe rather than preserving it for recovery, and content-hashed live assets are only cached for 30 seconds rather than long-lived immutable caching. The latter is deployment configuration. See `.factory/verification-2.md` for exact commands, current evidence, all severity-ranked defects, and retest criteria; `.factory/verification.md` is retained as the historical first report.
+- Reproduced the rejected-source defect with `Pasta night`, four servings, `javascript:alert(1)`, and three ingredient lines. The candidate cleared the name/ingredients and left focus unset.
+- Added an in-memory recipe draft. Every rejected submission now retains all raw values, marks the first invalid field with `aria-invalid` and `aria-describedby`, announces the error, and moves keyboard focus to that field. Correcting only the URL now saves the original recipe.
+- Added Azure Static Web Apps response configuration. Generated assets use `public, max-age=31536000, immutable`; `/`, HTML, and `sw.js` remain updateable; `.webmanifest` has a dedicated MIME mapping; CSP, Permissions-Policy, `frame-ancestors`, and `X-Frame-Options` are active.
+- Bumped the service-worker cache version to `pantry-ledger-v4` so installed clients receive the repaired shell.
+- Added `tests/live-policy.mjs` to compare every deployed non-map artifact with `dist/` and assert caching, MIME, security policy, and API rate limiting.
+- Added the required `/demo` sandbox with three realistic recipes. It is memory-only, never opens the real IndexedDB ledger or license keys, and has persistent reset/exit controls. Documentation is in `.factory/demo.md`.
+- Added `.factory/claims.json`, exact tagged claim tests, `.factory/copy-audit.md`, a TypeScript command, and ESLint.
 
----
+## Regression coverage
 
-(written by the worker at the end of each work order)
-# Meal Plan Pantry Check — build handoff
+- `tests/e2e/app.spec.ts`: invalid-URL draft retention, error association, focus return, correction without re-entry, and successful save.
+- `tests/deployment.test.ts`: immutable generated assets, updateable shell/worker, manifest route plus Azure MIME mapping, CSP/API allowance, permissions, and framing policy.
+- Tagged Playwright claims: source arithmetic and explicit pantry subtraction, demo offline reload, exact CSV rows, demo isolation/no external traffic, and four-recipe/free versus valid-license limits.
+- Existing parser, workflow, axe, keyboard skip-link, real IndexedDB persistence, and offline tests remain passing.
 
-Completed: 2026-08-28  
-Work order: `meal-plan-pantry-check-build-1`  
-Deployment output: `dist/` (static PWA)
+## Verification evidence
 
-## What shipped
-
-- A complete Recipes → Pantry check → Shopping list workflow at 390 px mobile and desktop sizes.
-- Ingredient-line parsing for decimals, common fractions, and Unicode fractions; simple unit normalization across tsp/tbsp/cup/ml/l and g/kg/oz/lb.
-- Per-recipe serving scaling, conservative ingredient consolidation, source links, and an expandable arithmetic trail on every consolidated item.
-- Visible “check amount” annotations for quantity-free or qualitative lines. No inferred pantry inventory and no URL scraping.
-- Explicit pantry confirmations, reversible picked-up checks, grocery-section grouping, CSV export, clipboard copy, and print styling.
-- IndexedDB persistence plus user-owned JSON backup/import. Storage failure and invalid-import messages keep the in-tab workflow available.
-- Installable manifest, original 192/512 icons, versioned service-worker caches, network-first navigation, cache-first assets, an offline fallback, and an in-app update notice.
-- A four-recipe free edition and $9 one-time Household Edition. Hosted Sociobot checkout, returned-license capture, at-most-daily verification, optimistic cached offline access, invalid/revoked handling, and paste-to-restore are implemented without a hardcoded product ID.
-- Concrete `/privacy/` and `/terms/` pages, no analytics, no CDN dependencies, and no remote recipe storage.
-- “The Pantry Ledger” visual system, its generation prompt/provenance, and original generated hero source are documented in `.factory/design.md` and `assets/src/`.
-
-## Verification
-
-Run from a clean checkout:
+Final clean command set:
 
 ```sh
 npm ci
 npm test
+npm run typecheck
+npm run lint
 npm run build
 npm run test:e2e
+npm run verify:live
 ```
 
-Results at handoff:
+Results:
 
-- `npm test`: 7/7 unit tests passed.
-- `npm run test:e2e`: core source-aware list flow, axe serious/critical scan, keyboard skip path, and a real `context.setOffline(true)` saved-state reload passed.
-- `npm run build`: passed; output has `dist/index.html` at its root.
-- Production bundle: 26.44 KB JS / 16.31 KB CSS uncompressed (10.17 KB / 4.34 KB gzip), well inside the 200 KB / 50 KB budgets.
-- Hero: 44/128 KB responsive AVIF, 89/255 KB responsive WebP, and a 112 KB JPEG fallback; every served option is below 300 KB.
-- Factory `verify-url.sh`: HTTP 200; title present; `lang="en"`; exactly one h1; main landmark present; zero images missing alt; zero console/page errors. The script’s naive hidden-button check was resolved by giving the restore submit button an explicit accessible label.
-- Lighthouse 12.8.2 mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100. FCP 0.9 s, LCP 1.5 s, TBT 0 ms, CLS 0.
-- Manual visual review: 1440×1000 desktop and 390×844 mobile; no clipping or horizontal scroll observed.
+- Install: 0 vulnerabilities.
+- Unit/config: 11/11 passed (7 parser, 4 deployment policy).
+- TypeScript and ESLint: passed with no findings.
+- Browser: 9/9 passed on Playwright 1.58.2. Every `.factory/claims.json` command also passed independently from a fresh browser context.
+- Production build: `dist/index.html` exists. Initial JS is 28.45 KB / 10.79 KB gzip; CSS is 16.78 KB / 4.41 KB gzip. Mobile AVIF is 43.28 KB; the largest hero option is 260.72 KB.
+- Expanded desktop/mobile flow: passed at 1440×1000 and 390×844. Mobile `scrollWidth` and `clientWidth` were both 390 px; body text was 16 px. Draft recovery, serving scale to 400 g, pantry subtraction, source arithmetic, CSV, four-recipe cap, invalid import, refresh persistence, and demo reset/exit passed.
+- Keyboard/accessibility: skip link is first, moves focus to `main`, and has a 3 px `rgb(157, 37, 23)` outline. Rejected source focus returns to the source field. Axe found zero serious/critical issues on empty, populated, and demo states.
+- Privacy: normal and demo flows contacted only the product origin. Demo changes did not enter the real ledger. A live invalid-license check contacted only `api.sociobot.in`, stripped the token from the URL, displayed the inactive notice, and logged no errors.
+- PWA: real saved state and bundled demo both survived `context.setOffline(true)` reloads. A controlled `v4` worker replacement displayed “A fresh edition is ready,” had a waiting worker, and activated it through **Update now**.
+- Local Azure emulator and production both returned the intended response policy. Production JS/CSS are one-year immutable; root is `no-cache, must-revalidate`; `sw.js` is `no-cache, no-store, must-revalidate`; manifest is `application/manifest+json`; CSP, Permissions-Policy, and `X-Frame-Options: DENY` are present.
+- Live identity: 18/18 non-map files matched local `dist/` by SHA-256. Live 390 px demo had no overflow, no console/page errors, only same-origin requests, zero serious/critical axe findings, and reloaded offline.
+- License rate limit: a production 60-request burst returned 30 × `200` and 30 × `429`; a limited response included `Retry-After`.
+- Factory URL smoke test: title, `lang=en`, one h1, main landmark, image alt text, button labels, and console checks passed locally and live.
+- Live Lighthouse 12.8.2 mobile: Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.90 s, LCP 1.20 s, TBT 0 ms, CLS 0.
 
-## Known limits and next steps
+Evidence files are under `/work/.evidence/repair-1/` in the worker container.
 
-- Parsing is intentionally conservative. It does not convert by ingredient density, interpret ranges, infer package sizes, or merge every singular/plural/preparation synonym. Ambiguous lines stay on the list and are visibly marked for review.
-- Grocery grouping is a deterministic keyword heuristic; uncommon foods fall into “Other.” A future version could offer manual group overrides without changing the privacy model.
-- There is no cloud sync or shared household plan. JSON backup/import is the portable path in v1.
-- The factory must register the paid product and production return URL before release; no product ID or payment-provider credential belongs in this repository.
+## Deployment
+
+- Repair commits: `805065d` and `5095d30` (final documentation/tooling commit follows this handoff).
+- Azure deployment IDs: `ec13ba3a-f6e2-4efb-a13c-752c0ef885b7` and MIME-corrected `68ffa2e3-9040-453c-bd35-9575463b50c3`.
+- Custom domain status: `Ready`; HTTPS returned 200.
+
+## Known limits
+
+No release-blocking findings remain. Intentional v1 limits are unchanged: parsing is conservative, grocery grouping uses deterministic keywords, and there is no cloud sync. JSON backup/import remains the portability path.
