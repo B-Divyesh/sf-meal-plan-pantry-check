@@ -1,4 +1,14 @@
-# Handoff\n\n(written by the worker at the end of each work order)
+# Handoff
+
+## Independent verification result — FAIL (2026-08-28 UTC)
+
+Candidate `419b10f8e2e6fc5ca4fed03bb10d51886ff6891a` was independently checked locally and at <https://meal-plan-pantry-check.sociobot.in/>. The deployment hash-matches the candidate and client-side functional, accessibility, PWA, privacy, and bundle checks passed. **Do not release this candidate yet:** the production Sociobot license verification endpoint returned 200 for 50 sequential requests and for a 100-request concurrency-25 burst, never returning the required `429` plus `Retry-After`.
+
+See `.factory/verification.md` for exact commands, all evidence, severity-ranked defects, and retest criteria. A secondary deployment issue is that content-hashed assets are only cached for 30 seconds rather than immutably.
+
+---
+
+(written by the worker at the end of each work order)
 # Meal Plan Pantry Check — build handoff
 
 Completed: 2026-08-28  
