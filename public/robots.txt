@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://meal-plan-pantry-check.sociobot.in/sitemap.xml

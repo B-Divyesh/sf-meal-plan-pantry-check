@@ -30,6 +30,14 @@ test('has no serious or critical accessibility findings', async ({ page }) => {
   expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact ?? ''))).toEqual([]);
 });
 
+test('offers a keyboard skip path into the workflow', async ({ page }) => {
+  await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Skip to main content' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#main')).toBeFocused();
+});
+
 test('reloads the saved app while offline', async ({ page, context }) => {
   await page.goto('/');
   await page.getByLabel('Recipe name').fill('Offline soup');

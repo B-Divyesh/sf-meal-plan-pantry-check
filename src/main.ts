@@ -18,6 +18,9 @@ let license: LicenseState = cachedLicenseState(licenseToken);
 
 const esc = (value: unknown): string => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 const uid = (): string => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+const safeSource = (value: string): string => {
+  try { const url = new URL(value); return /^https?:$/.test(url.protocol) ? url.href : ''; } catch { return ''; }
+};
 
 function persist(): void {
   state.updatedAt = Date.now();
@@ -61,7 +64,7 @@ function statusBars(): string {
   return `
     <div class="status-stack" aria-live="polite">
       ${!online ? '<p class="status offline"><strong>Offline edition.</strong> Your saved recipes and list still work on this device.</p>' : ''}
-      ${storageNotice ? `<p class="status error">${esc(storageNotice)}</p>` : ''}
+      ${storageNotice ? `<p class="status ${storageNotice.startsWith('Shopping list copied') ? 'note' : 'error'}">${esc(storageNotice)}</p>` : ''}
       ${license.notice ? `<p class="status note">${esc(license.notice)} ${!license.unlocked ? `<a href="${checkoutUrl}">View household edition</a>` : ''}</p>` : ''}
       ${updateReady ? '<p class="status update">A fresh edition is ready. <button data-action="reload-update">Update now</button></p>' : ''}
     </div>`;
@@ -71,7 +74,7 @@ function recipesView(): string {
   return `
     ${state.recipes.length === 0 ? `<section class="hero" aria-labelledby="start-title">
       <div class="hero-copy"><p class="kicker">No inventory fiction. No mystery arithmetic.</p><h2 id="start-title">Recipes in.<br>Certainty out.</h2><p>Paste ingredient lines from recipes you already use. Pantry Check scales the amounts, shows its work, and waits for you to say what is on the shelf.</p><a class="text-link" href="#recipe-form">Start with a recipe ↓</a></div>
-      <figure><picture><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.webp"><source srcset="/assets/pantry-ledger-1536.webp" type="image/webp"><img src="/assets/pantry-ledger-960.jpg" width="960" height="640" fetchpriority="high" decoding="async" alt="Recipe clippings and pantry jars feeding into a single hand-checked grocery ledger"></picture><figcaption>ONE LIST · EVERY SOURCE ACCOUNTED FOR</figcaption></figure>
+      <figure><picture><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.avif" type="image/avif"><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.webp" type="image/webp"><source srcset="/assets/pantry-ledger-1536.avif" type="image/avif"><source srcset="/assets/pantry-ledger-1536.webp" type="image/webp"><img src="/assets/pantry-ledger-960.jpg" width="960" height="640" fetchpriority="high" decoding="async" alt="Recipe clippings and pantry jars feeding into a single hand-checked grocery ledger"></picture><figcaption>ONE LIST · EVERY SOURCE ACCOUNTED FOR</figcaption></figure>
     </section>` : ''}
     <div class="editorial-grid">
       <section class="work-column" aria-labelledby="recipes-title">
@@ -105,9 +108,10 @@ function recipeForm(): string {
 
 function recipeCard(recipe: Recipe, index: number): string {
   const uncertain = recipe.ingredients.filter((line) => line.uncertain).length;
+  const source = safeSource(recipe.sourceUrl);
   return `<article class="clipping ${recipe.selected ? '' : 'excluded'}">
     <div class="clipping-index">CLIPPING ${String(index + 1).padStart(2, '0')}</div>
-    <div class="clipping-title"><label class="check-label"><input type="checkbox" data-action="select-recipe" data-id="${recipe.id}" ${recipe.selected ? 'checked' : ''}><span>Use in this plan</span></label><h3>${esc(recipe.title)}</h3>${recipe.sourceUrl ? `<a href="${esc(recipe.sourceUrl)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span><span class="sr-only"> in a new tab</span></a>` : '<span class="muted">Personal recipe · no link</span>'}</div>
+    <div class="clipping-title"><label class="check-label"><input type="checkbox" data-action="select-recipe" data-id="${recipe.id}" ${recipe.selected ? 'checked' : ''}><span>Use in this plan</span></label><h3>${esc(recipe.title)}</h3>${source ? `<a href="${esc(source)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span><span class="sr-only"> in a new tab</span></a>` : '<span class="muted">Personal recipe · no link</span>'}</div>
     <div class="serving-control"><label for="servings-${recipe.id}">Plan servings</label><div><button type="button" data-action="servings-down" data-id="${recipe.id}" aria-label="Decrease servings for ${esc(recipe.title)}">−</button><input id="servings-${recipe.id}" data-action="servings" data-id="${recipe.id}" type="number" min="0.25" step="0.25" inputmode="decimal" value="${recipe.targetServings}"><button type="button" data-action="servings-up" data-id="${recipe.id}" aria-label="Increase servings for ${esc(recipe.title)}">+</button></div><small>Original: ${recipe.baseServings}</small></div>
     <details class="ingredient-lines"><summary>${recipe.ingredients.length} ingredient${recipe.ingredients.length === 1 ? '' : 's'}${uncertain ? ` · <strong>${uncertain} to check</strong>` : ''}</summary><ol>${recipe.ingredients.map((item) => `<li><span>${esc(item.raw)}</span><small>${item.quantity ?? '?'} ${esc(item.unit)} · ${esc(item.name)} ${item.uncertain ? '<b>CHECK</b>' : ''}</small></li>`).join('')}</ol></details>
     <div class="clipping-actions"><button type="button" data-action="edit-recipe" data-id="${recipe.id}">Edit</button><button class="danger-link" type="button" data-action="delete-recipe" data-id="${recipe.id}">Remove</button></div>
@@ -116,7 +120,7 @@ function recipeCard(recipe: Recipe, index: number): string {
 
 function editionPanel(): string {
   return `<section class="edition-panel" aria-labelledby="edition-title"><p class="section-no">HOUSEHOLD EDITION</p><h2 id="edition-title">${license.unlocked ? 'Ledger unlocked' : 'Keep the whole recipe file.'}</h2><p>${license.unlocked ? 'Unlimited saved recipes are active on this device.' : 'The free edition plans four recipes—enough for a useful week. A one-time $9 household license unlocks unlimited recipes.'}</p>
-    ${license.unlocked ? '<p class="stamp">PAID · ACTIVE</p>' : `<a class="button ink" href="${checkoutUrl}">Buy once for $9</a><details class="restore"><summary>Have a license? Restore it</summary><form id="license-form"><label class="field"><span>License token</span><input name="license" autocomplete="off" required></label><button class="button quiet" type="submit">Verify license</button></form></details>`}
+    ${license.unlocked ? '<p class="stamp">PAID · ACTIVE</p>' : `<a class="button ink" href="${checkoutUrl}">Buy once for $9</a><details class="restore"><summary>Have a license? Restore it</summary><form id="license-form"><label class="field"><span>License token</span><input name="license" autocomplete="off" required></label><button class="button quiet" type="submit" aria-label="Verify license">Verify license</button></form></details>`}
     <p class="fineprint">Secure checkout by Sociobot/Dodo, merchant of record. Refunds are handled there. <a href="/terms/">Terms</a></p></section>`;
 }
 
@@ -144,7 +148,7 @@ function ledgerRow(item: ConsolidatedIngredient, index: number, mode: 'pantry' |
   const mark = state.pantry[item.key] ?? { inPantry: false, checked: false };
   const checked = mode === 'pantry' ? mark.inPantry : mark.checked;
   const action = mode === 'pantry' ? 'pantry-mark' : 'shopping-check';
-  return `<li class="ledger-row ${checked ? 'checked' : ''}"><label><input type="checkbox" data-action="${action}" data-key="${esc(item.key)}" ${checked ? 'checked' : ''}><span class="row-number">${String(index + 1).padStart(2, '0')}</span><span class="row-copy"><strong>${esc(item.name)}</strong><small>${mode === 'pantry' && checked ? 'IN PANTRY · SUBTRACTED' : item.uncertain ? 'CHECK AMOUNT' : mode === 'list' && checked ? 'PICKED UP' : 'NEEDED'}</small></span><span class="quantity"><strong>${esc(item.displayQuantity)}</strong><small>${esc(item.unit)}</small></span></label><details><summary>Show the arithmetic</summary><ul>${item.contributions.map((source) => `<li><span>${esc(source.recipeTitle)}</span><span>${esc(source.displayQuantity)} ${source.sourceUrl ? `<a href="${esc(source.sourceUrl)}" target="_blank" rel="noreferrer" aria-label="Open source for ${esc(source.recipeTitle)} in a new tab">↗</a>` : ''}</span></li>`).join('')}</ul>${item.uncertain ? `<p class="uncertainty"><strong>Red-pencil note:</strong> ${esc([...new Set(item.notes)].join(' '))}</p>` : ''}</details></li>`;
+  return `<li class="ledger-row ${checked ? 'checked' : ''}"><label><input type="checkbox" data-action="${action}" data-key="${esc(item.key)}" ${checked ? 'checked' : ''}><span class="row-number">${String(index + 1).padStart(2, '0')}</span><span class="row-copy"><strong>${esc(item.name)}</strong><small>${mode === 'pantry' && checked ? 'IN PANTRY · SUBTRACTED' : item.uncertain ? 'CHECK AMOUNT' : mode === 'list' && checked ? 'PICKED UP' : 'NEEDED'}</small></span><span class="quantity"><strong>${esc(item.displayQuantity)}</strong><small>${esc(item.unit)}</small></span></label><details><summary>Show the arithmetic</summary><ul>${item.contributions.map((source) => { const href = safeSource(source.sourceUrl); return `<li><span>${esc(source.recipeTitle)}</span><span>${esc(source.displayQuantity)} ${href ? `<a href="${esc(href)}" target="_blank" rel="noreferrer" aria-label="Open source for ${esc(source.recipeTitle)} in a new tab">↗</a>` : ''}</span></li>`; }).join('')}</ul>${item.uncertain ? `<p class="uncertainty"><strong>Red-pencil note:</strong> ${esc([...new Set(item.notes)].join(' '))}</p>` : ''}</details></li>`;
 }
 
 function emptyPlan(message: string, button: string): string {

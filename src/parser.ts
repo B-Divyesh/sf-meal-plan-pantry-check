@@ -68,10 +68,12 @@ export function parseIngredients(text: string): ParsedIngredient[] {
 }
 
 function normalizedName(name: string): string {
-  return name.toLowerCase()
+  const cleaned = name.toLowerCase()
     .replace(/\([^)]*\)/g, '')
     .replace(/\b(fresh|chopped|diced|minced|sliced|finely|roughly|divided)\b/g, '')
     .replace(/\s+/g, ' ').replace(/[,;]$/g, '').trim();
+  const plurals: Record<string, string> = { onions: 'onion', tomatoes: 'tomato', potatoes: 'potato', carrots: 'carrot', peppers: 'pepper', eggs: 'egg', lemons: 'lemon', limes: 'lime', apples: 'apple', bananas: 'banana', mushrooms: 'mushroom' };
+  return plurals[cleaned] ?? cleaned;
 }
 
 function amountText(value: number | null): string {

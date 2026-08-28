@@ -66,3 +66,4 @@ The hero is a generated monochrome editorial still life: a top-down pantry shelf
 
 Generation command: `/opt/fleet/lib/gen-image.sh` using the factory image deployment, 1536×1024, high quality. Generated 2026-08-28. The selected image is original generated material for this product; prompt metadata is stored beside the source. Distribution is covered by the project MIT license.
 
+Delivery formats: responsive 960 px and 1536 px AVIF/WebP, plus a 960 px JPEG fallback. Mobile AVIF is 44 KB; desktop AVIF is 128 KB. Mobile WebP is 89 KB; desktop WebP is 255 KB. All keep explicit 3:2 intrinsic dimensions.

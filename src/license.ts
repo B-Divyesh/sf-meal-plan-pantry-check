@@ -13,12 +13,15 @@ export function captureLicense(): string {
   const url = new URL(location.href);
   const incoming = url.searchParams.get('license');
   if (incoming) {
-    localStorage.setItem(TOKEN_KEY, incoming);
-    localStorage.removeItem(VERDICT_KEY);
+    try {
+      localStorage.setItem(TOKEN_KEY, incoming);
+      localStorage.removeItem(VERDICT_KEY);
+    } catch { /* The token still works for this session when storage is blocked. */ }
     url.searchParams.delete('license');
     history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
   }
-  return incoming ?? localStorage.getItem(TOKEN_KEY) ?? '';
+  if (incoming) return incoming;
+  try { return localStorage.getItem(TOKEN_KEY) ?? ''; } catch { return ''; }
 }
 
 export function cachedLicenseState(token: string): LicenseState {
@@ -41,7 +44,7 @@ export async function verifyLicense(token: string, force = false): Promise<Licen
     if (!response.ok) throw new Error('Verification unavailable');
     const result = await response.json() as { valid: boolean };
     const verdict = { valid: result.valid === true, checkedAt: Date.now() };
-    localStorage.setItem(VERDICT_KEY, JSON.stringify(verdict));
+    try { localStorage.setItem(VERDICT_KEY, JSON.stringify(verdict)); } catch { /* Keep the live verdict for this session. */ }
     return { unlocked: verdict.valid, notice: verdict.valid ? '' : 'License no longer active.', checking: false };
   } catch {
     return { unlocked: cached?.valid === true, notice: cached ? '' : 'Could not verify while offline. Try again when connected.', checking: false };
@@ -49,6 +52,8 @@ export async function verifyLicense(token: string, force = false): Promise<Licen
 }
 
 export function storeLicense(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token.trim());
-  localStorage.removeItem(VERDICT_KEY);
+  try {
+    localStorage.setItem(TOKEN_KEY, token.trim());
+    localStorage.removeItem(VERDICT_KEY);
+  } catch { /* Verification can still proceed for this session. */ }
 }
