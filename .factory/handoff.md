@@ -1,10 +1,10 @@
 # Handoff
 
-## Independent verification result — FAIL (2026-08-28 UTC)
+## Independent verification result — FAIL (2026-08-28 UTC, verification 2)
 
-Candidate `419b10f8e2e6fc5ca4fed03bb10d51886ff6891a` was independently checked locally and at <https://meal-plan-pantry-check.sociobot.in/>. The deployment hash-matches the candidate and client-side functional, accessibility, PWA, privacy, and bundle checks passed. **Do not release this candidate yet:** the production Sociobot license verification endpoint returned 200 for 50 sequential requests and for a 100-request concurrency-25 burst, never returning the required `429` plus `Retry-After`.
+Candidate `419b10f8e2e6fc5ca4fed03bb10d51886ff6891a` was freshly checked from a clean checkout and at <https://meal-plan-pantry-check.sociobot.in/>. The live deployment matches all 18 checked candidate artifacts exactly. Unit, type/build, project E2E, expanded functional flow, accessibility, offline reload/update, privacy, mobile, keyboard, bundle, and rate-limit checks passed. The earlier API blocker is **resolved**: a new concurrency-25 burst produced 30 × 200 then 70 × 429, with a captured `Retry-After: 0`.
 
-See `.factory/verification.md` for exact commands, all evidence, severity-ranked defects, and retest criteria. A secondary deployment issue is that content-hashed assets are only cached for 30 seconds rather than immutably.
+**Do not release this candidate yet.** It remains a **FAIL** because rejected recipe validation clears the entered recipe rather than preserving it for recovery, and content-hashed live assets are only cached for 30 seconds rather than long-lived immutable caching. The latter is deployment configuration. See `.factory/verification-2.md` for exact commands, current evidence, all severity-ranked defects, and retest criteria; `.factory/verification.md` is retained as the historical first report.
 
 ---
 
