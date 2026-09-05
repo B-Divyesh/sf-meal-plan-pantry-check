@@ -43,7 +43,8 @@ describe('Azure Static Web Apps response policy', () => {
 
   test('serves the demo route and a designed HTTP 404 response', () => {
     expect(route('/demo').rewrite).toBe('/index.html');
-    expect(route('/demo/').rewrite).toBe('/index.html');
+    const normalizedRoutes = config.routes.map((candidate) => candidate.route.replace(/\/+$/, '') || '/');
+    expect(new Set(normalizedRoutes).size).toBe(normalizedRoutes.length);
     expect(config.responseOverrides['404'].rewrite).toBe('/404.html');
     const notFound = readFileSync('public/404.html', 'utf8');
     expect(notFound).toContain('<h1>This page does not exist</h1>');
