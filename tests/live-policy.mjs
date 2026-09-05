@@ -35,7 +35,7 @@ const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 const root = await request('/');
 const rootHtml = await root.text();
-assert(rootHtml.includes('<title>Meal Plan Pantry Check — an honest shopping list</title>'), 'Live root has the wrong product identity');
+assert(rootHtml.includes('<title>Meal Plan Pantry Check — Check recipes and pantry</title>'), 'Live root has the wrong product identity');
 assert(/no-cache|no-store/.test(root.headers.get('cache-control') ?? ''), 'Root HTML is not updateable');
 
 const csp = root.headers.get('content-security-policy') ?? '';
@@ -44,6 +44,10 @@ assert(csp.includes('https://api.sociobot.in'), 'CSP blocks the Sociobot API');
 assert(csp.includes("frame-ancestors 'none'"), 'CSP frame-ancestors is missing');
 assert((root.headers.get('permissions-policy') ?? '').includes('camera=()'), 'Permissions-Policy is missing');
 assert(root.headers.get('x-frame-options') === 'DENY', 'X-Frame-Options is not DENY');
+
+const missing = await fetch(`${baseUrl}/verification-missing-page-${Date.now()}`, { redirect: 'manual' });
+assert(missing.status === 404, `Unknown route returned ${missing.status}, not 404`);
+assert((await missing.text()).includes('<h1>This page does not exist</h1>'), 'Unknown route did not render the designed 404 page');
 
 const assetPaths = [...rootHtml.matchAll(/(?:src|href)="(\/assets\/index-[^"]+\.(?:js|css))"/g)].map((match) => match[1]);
 assert(assetPaths.length >= 2, 'Could not find both generated JS and CSS assets');
@@ -68,7 +72,16 @@ for (const file of localFiles) {
   assert(sha256(remote) === sha256(local), `Live artifact differs from dist: ${routeFor(file)}`);
 }
 
-const rateUrl = 'https://api.sociobot.in/api/v1/products/meal-plan-pantry-check/verify?license=repair-rate-limit-20260828';
+const validationOrigin = 'https://meal-plan-pantry-check.sociobot.in';
+const validationUrl = `https://api.sociobot.in/api/v1/products/meal-plan-pantry-check/verify?license=repair-invalid-${Date.now()}`;
+const validation = await fetch(validationUrl, { headers: { Origin: validationOrigin } });
+assert(validation.status === 200, `Invalid-license validation returned ${validation.status}`);
+const validationBody = await validation.json();
+assert(validationBody.valid === false && validationBody.reason === 'invalid', `Unexpected invalid-license result: ${JSON.stringify(validationBody)}`);
+assert(validation.headers.get('access-control-allow-origin') === validationOrigin, 'License validation CORS does not permit the product origin');
+assert((validation.headers.get('cache-control') ?? '').includes('no-store'), 'License validation response is cacheable');
+
+const rateUrl = `https://api.sociobot.in/api/v1/products/meal-plan-pantry-check/verify?license=repair-rate-limit-${Date.now()}`;
 const burst = await Promise.all(Array.from({ length: 60 }, () => fetch(rateUrl)));
 const limited = burst.filter((response) => response.status === 429);
 assert(limited.length > 0, `License verification did not rate limit a 60-request burst (${burst.map((response) => response.status).join(',')})`);
@@ -86,5 +99,7 @@ console.log(JSON.stringify({
   manifestType: manifest.headers.get('content-type'),
   rootCache: root.headers.get('cache-control'),
   workerCache,
+  missingRouteStatus: missing.status,
+  invalidLicense: validationBody,
   rateStatuses,
 }, null, 2));

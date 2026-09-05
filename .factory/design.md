@@ -12,7 +12,7 @@ The single light treatment is deliberate. Warm newsprint gives the checklist a f
 - `--sheet: #fffdf7` — raised working sheets.
 - `--ink: #171714` — body and primary rules; 15.7:1 on paper.
 - `--ink-soft: #56544d` — secondary copy; 6.7:1 on paper.
-- `--rule: #9b978a` — large controls and dividers; paired with text where state matters.
+- `--rule: #817e73` — large controls and dividers; paired with text where state matters.
 - `--signal: #9d2517` — editorial red pencil for action, warning, and focus; 7.0:1 on paper.
 - `--confirmed: #2f5940` — pantry-confirmed marks; 7.1:1 on paper, always paired with a check/label.
 - `--danger: #8a1c16` — destructive copy and errors.
@@ -23,7 +23,7 @@ No gradients. Subtle paper grain is a hand-authored CSS pattern, not a downloade
 
 - Display/editorial: Georgia, `Times New Roman`, serif. Its compact capitals and old-style curves make headings read like a food-page masthead without a font download.
 - Utility/data: `Arial Narrow`, `Roboto Condensed`, Arial, sans-serif. Uppercase labels and tabular figures create the ledger voice.
-- Scale: 12 / 14 / 16 / 20 / 32 / clamp(46–84) px. Body never below 16 px; supporting legal copy may use 14 px.
+- Scale: 12 / 14 / 16 / 20 / 32 / clamp(46–88) px. Body never below 16 px; supporting legal copy may use 14 px.
 - Measures: prose maxes at 68 characters; numerical quantities use tabular figures.
 
 Using system families keeps the first visit small, fast, and private; no third-party font request occurs.
@@ -67,3 +67,5 @@ The hero is a generated monochrome editorial still life: a top-down pantry shelf
 Generation command: `/opt/fleet/lib/gen-image.sh` using the factory image deployment, 1536×1024, high quality. Generated 2026-08-28. The selected image is original generated material for this product; prompt metadata is stored beside the source. Distribution is covered by the project MIT license.
 
 Delivery formats: responsive 960 px and 1536 px AVIF/WebP, plus a 960 px JPEG fallback. Mobile AVIF is 44 KB; desktop AVIF is 128 KB. Mobile WebP is 89 KB; desktop WebP is 255 KB. All keep explicit 3:2 intrinsic dimensions.
+
+The 1200×630 social preview is a crop of the same selected generated image, made on 2026-09-05 without adding text or symbols. The 180 px Apple touch icon is a raster export of the original hand-authored PC pantry-stamp SVG. Both derivatives share the source asset’s provenance and MIT distribution terms.

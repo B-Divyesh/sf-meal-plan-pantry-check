@@ -4,20 +4,20 @@ An offline-first household utility that turns selected recipes into one explaina
 
 Live: <https://meal-plan-pantry-check.sociobot.in>
 
-One-click sample: <https://meal-plan-pantry-check.sociobot.in/demo>. Demo changes stay in memory and never read or replace your saved ledger.
+One-click sample: <https://meal-plan-pantry-check.sociobot.in/demo>. Demo changes stay in memory and never read or replace your saved recipes.
 
 ## Who it is for
 
-People with a small personal recipe collection who want reliable quantities without maintaining a full inventory system, uploading recipe content, or trusting an opaque generated list.
+People with a small personal recipe collection who want reliable quantities. They do not need a full inventory system or generated list.
 
-## What v1 does
+## What it does
 
 - Pastes structured ingredient lines and flags amounts it cannot parse confidently.
 - Selects recipes and scales each recipe to the planned serving count.
 - Consolidates compatible mass and volume units with source-by-source arithmetic.
 - Requires explicit pantry confirmation before removing an ingredient.
 - Groups the final checklist and exports it as CSV, printable paper, or clipboard text.
-- Stores the ledger in IndexedDB and supports complete JSON export/import.
+- Stores planner data in IndexedDB and supports complete JSON export/import.
 - Installs as a PWA and reloads the saved plan without a network connection.
 - Offers a useful four-recipe free edition; a one-time $9 household license unlocks unlimited saved recipes through Sociobot billing.
 
@@ -41,13 +41,13 @@ npm run test:e2e
 
 ## Data and billing
 
-Recipes and planning state never leave the browser. A license token is the only application value kept in localStorage; it is verified at most daily with `https://api.sociobot.in/api/v1/products/meal-plan-pantry-check/verify`. Checkout is hosted by Sociobot/Dodo. No analytics, advertising cookies, third-party runtime scripts, or CDN fonts are used.
+Recipes and planning state never leave the browser. Only the license token and its dated verdict use application localStorage keys. The app verifies the token at most daily with `https://api.sociobot.in/api/v1/products/meal-plan-pantry-check/verify`. Checkout is hosted by Sociobot/Dodo. No analytics, advertising cookies, third-party runtime scripts, or CDN fonts are used.
 
 See [the source brief](.factory/brief.json), [visual system](.factory/design.md), [privacy policy](public/privacy/index.html), and [terms](public/terms/index.html).
 
 ## Deployment
 
-Upload the contents of `dist/` to Azure Static Web Apps with HTTPS. The built `staticwebapp.config.json` sets navigation fallback, immutable asset caching, manifest MIME, updateable HTML/service-worker caching, and browser security headers. Run `npm run verify:live` after deployment to compare `dist/` with production and check those policies plus license-endpoint rate limiting. Infrastructure, DNS, and billing product registration are handled outside this repository.
+Upload the contents of `dist/` to Azure Static Web Apps with HTTPS. The built configuration maps `/demo`, serves the designed 404, and sets caching, MIME, and browser security headers. Run `npm run verify:live` after deployment to compare `dist/` with production and check live policies. Infrastructure, DNS, and billing product registration are handled outside this repository.
 
 ## License
 

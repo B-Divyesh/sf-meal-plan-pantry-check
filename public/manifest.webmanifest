@@ -1,9 +1,9 @@
 {
   "name": "Meal Plan Pantry Check",
   "short_name": "Pantry Check",
-  "description": "An explainable shopping list that subtracts only what you confirm is in the pantry.",
+  "description": "Scale personal recipes into one list and remove only the pantry items you confirm.",
   "id": "/",
-  "start_url": "/?source=pwa&v=1",
+  "start_url": "/?source=pwa&v=2",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f3efe4",

@@ -19,8 +19,13 @@ let updateReady = false;
 let reloadForUpdate = false;
 let licenseToken = demoMode ? '' : captureLicense();
 let license: LicenseState = cachedLicenseState(licenseToken);
+const BUILD_ID = '1.1.0';
 
-if (demoMode) document.title = 'Demo — Meal Plan Pantry Check';
+if (demoMode) {
+  document.title = 'Demo — Meal Plan Pantry Check';
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute('href', 'https://meal-plan-pantry-check.sociobot.in/demo');
+  document.querySelector<HTMLMetaElement>('meta[property="og:url"]')?.setAttribute('content', 'https://meal-plan-pantry-check.sociobot.in/demo');
+}
 
 const esc = (value: unknown): string => String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]!);
 const uid = (): string => crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -34,8 +39,8 @@ function sampleState(): AppState {
     ingredients: parseIngredients(ingredientsText), selected: true, updatedAt: Date.now(),
   });
   const recipes = [
-    makeRecipe('demo-pasta', 'Lemon herb pasta', 4, 'https://example.com/lemon-pasta', '400 g spaghetti\n3 tbsp olive oil\n2 lemons\n2 cloves garlic\nsalt to taste'),
-    makeRecipe('demo-tacos', 'Black bean tacos', 4, 'https://example.com/bean-tacos', '2 cans black beans\n8 tortillas\n1 onion\n2 limes\n1 tsp cumin'),
+    makeRecipe('demo-pasta', 'Lemon herb pasta', 4, '', '400 g spaghetti\n3 tbsp olive oil\n2 lemons\n2 cloves garlic\nsalt to taste'),
+    makeRecipe('demo-tacos', 'Black bean tacos', 4, '', '2 cans black beans\n8 tortillas\n1 onion\n2 limes\n1 tsp cumin'),
     makeRecipe('demo-bowls', 'Roast vegetable bowls', 4, '', '600 g sweet potatoes\n2 tbsp olive oil\n300 g broccoli\n1 cup brown rice\n4 tbsp tahini'),
   ];
   return { version: 1, recipes, pantry: {}, view: 'recipes', updatedAt: Date.now() };
@@ -61,12 +66,20 @@ function masthead(): string {
   const pantryCount = allIngredients.filter((item) => state.pantry[item.key]?.inPantry).length;
   return `
     <header class="masthead">
+      <div class="site-header">
+        <a class="wordmark" href="/" aria-label="Meal Plan Pantry Check home"><span aria-hidden="true">PC</span> Meal Plan Pantry Check</a>
+        <nav aria-label="Site"><a href="/demo">Demo</a><a href="/privacy/">Privacy</a></nav>
+      </div>
       <div class="dateline">
-        <span>THE PANTRY LEDGER</span><span>LOCAL EDITION</span><span>${online ? 'READY OFFLINE' : 'OFFLINE NOW'}</span>
+        <span>RECIPE AND PANTRY PLANNER</span><span>${online ? 'AVAILABLE OFFLINE AFTER FIRST VISIT' : 'OFFLINE NOW'}</span>
       </div>
       <div class="title-row">
-        <div><p class="eyebrow">An honest list for the week ahead</p><h1>Meal Plan<br><em>Pantry Check</em></h1></div>
-        <p class="dek">Combine recipes. Set servings. Cross off only what <strong>you</strong> confirm is already home.</p>
+        <div><p class="eyebrow">MEAL PLAN PANTRY CHECK</p><h1>Check recipes against your pantry</h1></div>
+        <div class="intro">
+          <p class="dek">For home cooks with personal recipes who want one list based only on pantry items they confirm.</p>
+          ${demoMode ? '' : '<div class="intro-actions"><a class="button primary" href="/demo">Try it with sample data</a><a class="text-link" href="#recipe-form">Add a recipe</a></div>'}
+          <ul class="plain-facts" aria-label="Product facts"><li>Recipes stay in this browser</li><li>Works offline after the first visit</li><li>Four recipes free · $9 once for unlimited</li></ul>
+        </div>
       </div>
       <nav class="folio" aria-label="Plan steps">
         ${stepButton('recipes', '01', 'Recipes', `${selected} selected`)}
@@ -84,24 +97,24 @@ function statusBars(): string {
   return `
     <div class="status-stack" aria-live="polite">
       ${demoMode ? '<div class="status demo-status"><strong>Demo — sample data, nothing is saved</strong><span><button type="button" data-action="reset-demo">Reset demo</button><a href="/">Start for real</a></span></div>' : ''}
-      ${!online ? '<p class="status offline"><strong>Offline edition.</strong> Your saved recipes and list still work on this device.</p>' : ''}
+      ${!online ? '<p class="status offline"><strong>Offline.</strong> Your saved recipes and list still work on this device.</p>' : ''}
       ${storageNotice ? `<p class="status ${storageNotice.startsWith('Shopping list copied') ? 'note' : 'error'}">${esc(storageNotice)}</p>` : ''}
       ${license.notice ? `<p class="status note">${esc(license.notice)} ${!license.unlocked ? `<a href="${checkoutUrl}">View household edition</a>` : ''}</p>` : ''}
-      ${updateReady ? '<p class="status update">A fresh edition is ready. <button data-action="reload-update">Update now</button></p>' : ''}
+      ${updateReady ? '<p class="status update">An update is ready. <button data-action="reload-update">Install update</button></p>' : ''}
     </div>`;
 }
 
 function recipesView(): string {
   return `
     ${state.recipes.length === 0 ? `<section class="hero" aria-labelledby="start-title">
-      <div class="hero-copy"><p class="kicker">No inventory fiction. No mystery arithmetic.</p><h2 id="start-title">Recipes in.<br>Certainty out.</h2><p>Paste ingredient lines from recipes you already use. Pantry Check scales the amounts, shows its work, and waits for you to say what is on the shelf.</p><div class="hero-actions"><a class="button primary" href="/demo">Try it with sample data</a><a class="text-link" href="#recipe-form">Start with a recipe ↓</a></div></div>
-      <figure><picture><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.avif" type="image/avif"><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.webp" type="image/webp"><source srcset="/assets/pantry-ledger-1536.avif" type="image/avif"><source srcset="/assets/pantry-ledger-1536.webp" type="image/webp"><img src="/assets/pantry-ledger-960.jpg" width="960" height="640" fetchpriority="high" decoding="async" alt="Recipe clippings and pantry jars feeding into a single hand-checked grocery ledger"></picture><figcaption>ONE LIST · EVERY SOURCE ACCOUNTED FOR</figcaption></figure>
+      <div class="hero-copy"><p class="kicker">HOW IT WORKS</p><h2 id="start-title">Build one shopping list</h2><ol class="how-list"><li><strong>Paste recipes.</strong> Enter one ingredient per line. Unclear amounts stay marked for review.</li><li><strong>Set servings.</strong> The planner scales compatible weights and volumes and shows each recipe’s part.</li><li><strong>Check the pantry.</strong> Only ingredients you confirm are removed from the shopping list.</li></ol></div>
+      <figure><picture><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.avif" type="image/avif"><source media="(max-width: 720px)" srcset="/assets/pantry-ledger-960.webp" type="image/webp"><source srcset="/assets/pantry-ledger-1536.avif" type="image/avif"><source srcset="/assets/pantry-ledger-1536.webp" type="image/webp"><img src="/assets/pantry-ledger-960.jpg" width="960" height="640" fetchpriority="high" decoding="async" alt="Recipe sheets and pantry jars arranged beside one checked shopping list"></picture><figcaption>ONE SHOPPING LIST · RECIPE SOURCES SHOWN</figcaption></figure>
     </section>` : ''}
     <div class="editorial-grid">
       <section class="work-column" aria-labelledby="recipes-title">
-        <div class="section-heading"><div><p class="section-no">SECTION 01</p><h2 id="recipes-title">Recipe desk</h2></div><p>${state.recipes.length} saved · ${selectedRecipes().length} in this plan</p></div>
+        <div class="section-heading"><div><p class="section-no">SECTION 01</p><h2 id="recipes-title">Recipes in this plan</h2></div><p>${state.recipes.length} saved · ${selectedRecipes().length} in this plan</p></div>
         ${recipeForm()}
-        <div class="clippings">${state.recipes.length ? state.recipes.map(recipeCard).join('') : '<p class="empty-line">Your saved clippings will appear here.</p>'}</div>
+        <div class="clippings">${state.recipes.length ? state.recipes.map(recipeCard).join('') : '<p class="empty-line">Saved recipes appear here after you add one.</p>'}</div>
       </section>
       <aside class="rail" aria-labelledby="edition-title">
         ${editionPanel()}
@@ -122,7 +135,8 @@ function recipeForm(): string {
     ? ' aria-invalid="true" aria-describedby="form-error"'
     : '';
   return `<form id="recipe-form" class="recipe-form" novalidate>
-    <div class="form-heading"><h3>${edit ? 'Revise clipping' : 'Add a recipe'}</h3><span>Paste, don’t scrape</span></div>
+    <div class="form-heading"><h3>${edit ? 'Edit recipe' : 'Add a recipe'}</h3><span>PASTE INGREDIENT LINES</span></div>
+    <p class="required-note"><span aria-hidden="true">*</span> Required fields</p>
     ${formError ? `<p class="form-error" id="form-error" role="alert">${esc(formError)}</p>` : ''}
     <div class="field-grid">
       <label class="field wide"><span>Recipe name <b aria-hidden="true">*</b></span><input name="title" required value="${esc(draft.title)}" autocomplete="off" placeholder="Tuesday tomato pasta"${invalid('title')}></label>
@@ -140,8 +154,8 @@ function recipeCard(recipe: Recipe, index: number): string {
   const uncertain = recipe.ingredients.filter((line) => line.uncertain).length;
   const source = safeSource(recipe.sourceUrl);
   return `<article class="clipping ${recipe.selected ? '' : 'excluded'}">
-    <div class="clipping-index">CLIPPING ${String(index + 1).padStart(2, '0')}</div>
-    <div class="clipping-title"><label class="check-label"><input type="checkbox" data-action="select-recipe" data-id="${recipe.id}" ${recipe.selected ? 'checked' : ''}><span>Use in this plan</span></label><h3>${esc(recipe.title)}</h3>${source ? `<a href="${esc(source)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span><span class="sr-only"> in a new tab</span></a>` : '<span class="muted">Personal recipe · no link</span>'}</div>
+    <div class="clipping-index">RECIPE ${String(index + 1).padStart(2, '0')}</div>
+    <div class="clipping-title"><label class="check-label"><input type="checkbox" data-action="select-recipe" data-id="${recipe.id}" ${recipe.selected ? 'checked' : ''}><span>Use in this plan</span></label><h3>${esc(recipe.title)}</h3>${source ? `<a href="${esc(source)}" target="_blank" rel="noreferrer">Open source <span aria-hidden="true">↗</span><span class="sr-only"> in a new tab</span></a>` : '<span class="muted">Local recipe · no source link</span>'}</div>
     <div class="serving-control"><label for="servings-${recipe.id}">Plan servings</label><div><button type="button" data-action="servings-down" data-id="${recipe.id}" aria-label="Decrease servings for ${esc(recipe.title)}">−</button><input id="servings-${recipe.id}" data-action="servings" data-id="${recipe.id}" type="number" min="0.25" step="0.25" inputmode="decimal" value="${recipe.targetServings}"><button type="button" data-action="servings-up" data-id="${recipe.id}" aria-label="Increase servings for ${esc(recipe.title)}">+</button></div><small>Original: ${recipe.baseServings}</small></div>
     <details class="ingredient-lines"><summary>${recipe.ingredients.length} ingredient${recipe.ingredients.length === 1 ? '' : 's'}${uncertain ? ` · <strong>${uncertain} to check</strong>` : ''}</summary><ol>${recipe.ingredients.map((item) => `<li><span>${esc(item.raw)}</span><small>${item.quantity ?? '?'} ${esc(item.unit)} · ${esc(item.name)} ${item.uncertain ? '<b>CHECK</b>' : ''}</small></li>`).join('')}</ol></details>
     <div class="clipping-actions"><button type="button" data-action="edit-recipe" data-id="${recipe.id}">Edit</button><button class="danger-link" type="button" data-action="delete-recipe" data-id="${recipe.id}">Remove</button></div>
@@ -149,13 +163,13 @@ function recipeCard(recipe: Recipe, index: number): string {
 }
 
 function editionPanel(): string {
-  return `<section class="edition-panel" aria-labelledby="edition-title"><p class="section-no">HOUSEHOLD EDITION</p><h2 id="edition-title">${license.unlocked ? 'Ledger unlocked' : 'Keep the whole recipe file.'}</h2><p>${license.unlocked ? 'Unlimited saved recipes are active on this device.' : 'The free edition plans four recipes—enough for a useful week. A one-time $9 household license unlocks unlimited recipes.'}</p>
+  return `<section class="edition-panel" aria-labelledby="edition-title"><p class="section-no">HOUSEHOLD EDITION</p><h2 id="edition-title">${license.unlocked ? 'Household Edition active' : 'Plan with more recipes'}</h2><p>${license.unlocked ? 'This valid license allows unlimited saved recipes on this device.' : 'The free edition stores four recipes. A one-time $9 household license allows unlimited saved recipes.'}</p>
     ${license.unlocked ? '<p class="stamp">PAID · ACTIVE</p>' : `<a class="button ink" href="${checkoutUrl}">Buy once for $9</a><details class="restore"><summary>Have a license? Restore it</summary><form id="license-form"><label class="field"><span>License token</span><input name="license" autocomplete="off" required></label><button class="button quiet" type="submit" aria-label="Verify license">Verify license</button></form></details>`}
     <p class="fineprint">Secure checkout by Sociobot/Dodo, merchant of record. Refunds are handled there. <a href="/terms/">Terms</a></p></section>`;
 }
 
 function dataPanel(): string {
-  return `<section class="data-panel"><p class="section-no">YOUR DATA</p><h2>Stays in your pantry.</h2><p>Recipes are stored in this browser, not on our servers. Take a complete backup whenever you like.</p><div class="stacked-actions"><button class="text-button" data-action="export-json">Export recipe backup <span>↓</span></button><label class="text-button file-button">Import recipe backup <span>↑</span><input id="import-file" type="file" accept="application/json,.json"></label></div><p class="fineprint"><a href="/privacy/">Privacy</a> · Generated editorial imagery disclosed in the colophon.</p></section>`;
+  return `<section class="data-panel"><p class="section-no">YOUR DATA</p><h2>Your data stays on this device</h2><p>Recipes are stored in this browser, not on our servers. Use a JSON backup to move or restore all planner data.</p><div class="stacked-actions"><button class="text-button" data-action="export-json">Export recipe backup <span>↓</span></button><label class="text-button file-button">Import recipe backup <span>↑</span><input id="import-file" type="file" accept="application/json,.json"></label></div><p class="fineprint"><a href="/privacy/">Read the privacy policy</a> · Generated editorial imagery is disclosed below.</p></section>`;
 }
 
 function pantryView(): string {
@@ -169,8 +183,8 @@ function listView(): string {
   const all = ingredients();
   const buy = all.filter((item) => !state.pantry[item.key]?.inPantry);
   const groups = [...new Set(buy.map((item) => item.group))];
-  return `<section class="stage" aria-labelledby="list-title"><div class="stage-heading"><div><p class="section-no">SECTION 03 · FINAL COPY</p><h2 id="list-title">The shopping list</h2><p>${all.length - buy.length} pantry item${all.length - buy.length === 1 ? '' : 's'} held back. Every total keeps its sources.</p></div><div class="issue-stat"><strong>${buy.filter((item) => state.pantry[item.key]?.checked).length}</strong><span>of ${buy.length}<br>picked up</span></div></div>
-    ${all.length ? `<div class="export-bar"><button class="button ink" data-action="copy-list">Copy list</button><button class="button quiet" data-action="export-csv">Export CSV</button><button class="button quiet" data-action="print">Print checklist</button></div>${buy.length ? groups.map((group) => `<section class="shopping-group" aria-labelledby="group-${group.replace(/\W/g, '')}"><h3 id="group-${group.replace(/\W/g, '')}"><span>${esc(group)}</span><small>${buy.filter((item) => item.group === group).length} lines</small></h3><ul class="ledger-list">${buy.filter((item) => item.group === group).map((item, index) => ledgerRow(item, index, 'list')).join('')}</ul></section>`).join('') : '<div class="all-home"><span aria-hidden="true">✓</span><h3>The cupboard wins.</h3><p>Every ingredient is confirmed at home. Clear a pantry mark if that changes.</p><button class="button quiet" data-view="pantry">Review pantry</button></div>'}` : emptyPlan('Add and select recipes before writing the shopping list.', 'Back to recipes')}
+  return `<section class="stage" aria-labelledby="list-title"><div class="stage-heading"><div><p class="section-no">SECTION 03</p><h2 id="list-title">The shopping list</h2><p>${all.length - buy.length} pantry item${all.length - buy.length === 1 ? '' : 's'} held back. Every total keeps its sources.</p></div><div class="issue-stat"><strong>${buy.filter((item) => state.pantry[item.key]?.checked).length}</strong><span>of ${buy.length}<br>picked up</span></div></div>
+    ${all.length ? `<div class="export-bar"><button class="button ink" data-action="copy-list">Copy list</button><button class="button quiet" data-action="export-csv">Export CSV</button><button class="button quiet" data-action="print">Print checklist</button></div>${buy.length ? groups.map((group) => `<section class="shopping-group" aria-labelledby="group-${group.replace(/\W/g, '')}"><h3 id="group-${group.replace(/\W/g, '')}"><span>${esc(group)}</span><small>${buy.filter((item) => item.group === group).length} lines</small></h3><ul class="ledger-list">${buy.filter((item) => item.group === group).map((item, index) => ledgerRow(item, index, 'list')).join('')}</ul></section>`).join('') : '<div class="all-home"><span aria-hidden="true">✓</span><h3>Nothing to buy</h3><p>Every ingredient is confirmed at home. Clear a pantry mark if that changes.</p><button class="button quiet" data-view="pantry">Review pantry</button></div>'}` : emptyPlan('Add and select recipes before writing the shopping list.', 'Back to recipes')}
   </section>`;
 }
 
@@ -178,20 +192,31 @@ function ledgerRow(item: ConsolidatedIngredient, index: number, mode: 'pantry' |
   const mark = state.pantry[item.key] ?? { inPantry: false, checked: false };
   const checked = mode === 'pantry' ? mark.inPantry : mark.checked;
   const action = mode === 'pantry' ? 'pantry-mark' : 'shopping-check';
-  return `<li class="ledger-row ${checked ? 'checked' : ''}"><label><input type="checkbox" data-action="${action}" data-key="${esc(item.key)}" ${checked ? 'checked' : ''}><span class="row-number">${String(index + 1).padStart(2, '0')}</span><span class="row-copy"><strong>${esc(item.name)}</strong><small>${mode === 'pantry' && checked ? 'IN PANTRY · SUBTRACTED' : item.uncertain ? 'CHECK AMOUNT' : mode === 'list' && checked ? 'PICKED UP' : 'NEEDED'}</small></span><span class="quantity"><strong>${esc(item.displayQuantity)}</strong><small>${esc(item.unit)}</small></span></label><details><summary>Show the arithmetic</summary><ul>${item.contributions.map((source) => { const href = safeSource(source.sourceUrl); return `<li><span>${esc(source.recipeTitle)}</span><span>${esc(source.displayQuantity)} ${href ? `<a href="${esc(href)}" target="_blank" rel="noreferrer" aria-label="Open source for ${esc(source.recipeTitle)} in a new tab">↗</a>` : ''}</span></li>`; }).join('')}</ul>${item.uncertain ? `<p class="uncertainty"><strong>Red-pencil note:</strong> ${esc([...new Set(item.notes)].join(' '))}</p>` : ''}</details></li>`;
+  return `<li class="ledger-row ${checked ? 'checked' : ''}"><label><input type="checkbox" data-action="${action}" data-key="${esc(item.key)}" ${checked ? 'checked' : ''}><span class="row-number">${String(index + 1).padStart(2, '0')}</span><span class="row-copy"><strong>${esc(item.name)}</strong><small>${mode === 'pantry' && checked ? 'IN PANTRY · SUBTRACTED' : item.uncertain ? 'CHECK AMOUNT' : mode === 'list' && checked ? 'PICKED UP' : 'NEEDED'}</small></span><span class="quantity"><strong>${esc(item.displayQuantity)}</strong><small>${esc(item.unit)}</small></span></label><details><summary>Show the arithmetic</summary><ul>${item.contributions.map((source) => { const href = safeSource(source.sourceUrl); return `<li><span>${esc(source.recipeTitle)}</span><span>${esc(source.displayQuantity)} ${href ? `<a href="${esc(href)}" target="_blank" rel="noreferrer" aria-label="Open source for ${esc(source.recipeTitle)} in a new tab">↗</a>` : ''}</span></li>`; }).join('')}</ul>${item.uncertain ? `<p class="uncertainty"><strong>Parsing note:</strong> ${esc([...new Set(item.notes)].join(' '))}</p>` : ''}</details></li>`;
 }
 
 function emptyPlan(message: string, button: string): string {
-  return `<div class="empty-state"><p>NO LINES TO PRINT</p><h3>${esc(message)}</h3><button class="button primary" data-view="recipes">${esc(button)}</button></div>`;
+  return `<div class="empty-state"><p>NO INGREDIENTS YET</p><h3>${esc(message)}</h3><button class="button primary" data-view="recipes">${esc(button)}</button></div>`;
 }
 
 function footer(): string {
-  return `<footer><div><strong>MEAL PLAN PANTRY CHECK</strong><p>A private, offline-first household utility.</p></div><div><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-meal-plan-pantry-check" rel="noreferrer">Source</a></div><p class="colophon">Original hero generated with the factory image model · No analytics · No grocery affiliates</p></footer>`;
+  return `<footer><div><strong>MEAL PLAN PANTRY CHECK</strong><p>Turn personal recipes into a pantry-checked shopping list.</p></div><nav aria-label="Footer"><a href="/demo">Demo</a><a href="/privacy/">Privacy</a><a href="/terms/">Terms</a><a href="https://github.com/B-Divyesh/sf-meal-plan-pantry-check">Source code <span aria-hidden="true">↗</span><span class="sr-only"> on an external site</span></a></nav><p class="colophon">Built by Param Factory · Version ${BUILD_ID} · Original hero generated with the factory image model</p></footer>`;
 }
 
 function render(): void {
-  app.innerHTML = `${masthead()}${statusBars()}<main id="main" tabindex="-1">${loading ? '<div class="loading" role="status"><span></span>Opening your local ledger…</div>' : state.view === 'recipes' ? recipesView() : state.view === 'pantry' ? pantryView() : listView()}</main>${footer()}`;
+  app.innerHTML = `${masthead()}${statusBars()}<main id="main" tabindex="-1">${loading ? '<div class="loading" role="status"><span></span>Opening your local planner…</div>' : state.view === 'recipes' ? recipesView() : state.view === 'pantry' ? pantryView() : listView()}</main>${footer()}`;
   if (!loading && state.view === 'recipes') updatePreview();
+}
+
+function showView(view: AppState['view']): void {
+  state.view = view;
+  persist();
+  render();
+  const heading = document.querySelector<HTMLElement>(view === 'recipes' ? '#recipes-title' : view === 'pantry' ? '#pantry-title' : '#list-title');
+  if (!heading) return;
+  heading.tabIndex = -1;
+  heading.focus({ preventScroll: true });
+  heading.scrollIntoView({ block: 'start' });
 }
 
 function updatePreview(): void {
@@ -257,7 +282,7 @@ app.addEventListener('change', async (event) => {
     try {
       const incoming = JSON.parse(await target.files[0].text()) as AppState;
       if (incoming.version !== 1 || !Array.isArray(incoming.recipes) || typeof incoming.pantry !== 'object') throw new Error('shape');
-      if (!confirm(`Replace this device's ledger with a backup containing ${incoming.recipes.length} recipes?`)) return;
+      if (!confirm(`Replace this device's saved recipes and pantry checks with a backup containing ${incoming.recipes.length} recipes?`)) return;
       state = { ...incoming, view: 'recipes', updatedAt: Date.now() }; persist(); render();
     } catch { storageNotice = 'That file is not a Pantry Check backup. Choose an exported JSON file.'; render(); }
   }
@@ -282,7 +307,7 @@ app.addEventListener('submit', async (event) => {
     if (!Number.isFinite(baseServings) || baseServings <= 0) { rejectRecipe('Add a recipe name, valid serving count, and at least one ingredient line.', 'servings'); return; }
     if (!ingredientsText) { rejectRecipe('Add a recipe name, valid serving count, and at least one ingredient line.', 'ingredientsText'); return; }
     if (sourceUrl) { try { const parsed = new URL(sourceUrl); if (!/^https?:$/.test(parsed.protocol)) throw new Error(); } catch { rejectRecipe('The source link must start with http:// or https://.', 'sourceUrl'); return; } }
-    if (!editingId && !license.unlocked && state.recipes.length >= 4) { rejectRecipe('The free edition holds four recipes. Remove one, or unlock the household edition for unlimited recipes.', 'title'); return; }
+    if (!editingId && !license.unlocked && state.recipes.length >= 4) { rejectRecipe('The free edition holds four recipes. Remove one, or buy the Household Edition for unlimited recipes.', 'title'); return; }
     const parsed = parseIngredients(ingredientsText);
     const old = state.recipes.find((recipe) => recipe.id === editingId);
     const recipe: Recipe = { id: old?.id ?? uid(), title, baseServings, targetServings: old ? old.targetServings * baseServings / old.baseServings : baseServings, sourceUrl, ingredientsText, ingredients: parsed, selected: old?.selected ?? true, updatedAt: Date.now() };
@@ -301,7 +326,7 @@ app.addEventListener('click', async (event) => {
   const button = (event.target as HTMLElement).closest<HTMLElement>('[data-action],[data-view]');
   if (!button) return;
   const view = button.dataset.view as AppState['view'] | undefined;
-  if (view) { state.view = view; persist(); render(); document.querySelector('#main')?.scrollIntoView(); return; }
+  if (view) { showView(view); return; }
   const action = button.dataset.action;
   const recipe = state.recipes.find((item) => item.id === button.dataset.id);
   if (action === 'cancel-edit') { editingId = ''; recipeDraft = null; formError = ''; formErrorField = ''; render(); }
@@ -314,7 +339,11 @@ app.addEventListener('click', async (event) => {
   if (action === 'export-csv') download(`shopping-list-${new Date().toISOString().slice(0, 10)}.csv`, shoppingCsv(), 'text/csv;charset=utf-8');
   if (action === 'copy-list') { try { await navigator.clipboard.writeText(shoppingText()); storageNotice = 'Shopping list copied to the clipboard.'; } catch { storageNotice = 'Clipboard access was blocked. Use Export CSV instead.'; } render(); }
   if (action === 'print') window.print();
-  if (action === 'reload-update') { reloadForUpdate = true; navigator.serviceWorker.controller?.postMessage({ type: 'SKIP_WAITING' }); }
+  if (action === 'reload-update') {
+    reloadForUpdate = true;
+    const registration = await navigator.serviceWorker.getRegistration();
+    registration?.waiting?.postMessage({ type: 'SKIP_WAITING' });
+  }
   if (action === 'reset-demo' && demoMode) { state = sampleState(); editingId = ''; recipeDraft = null; formError = ''; formErrorField = ''; storageNotice = ''; render(); }
 });
 

@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 
-type Route = { route: string; headers?: Record<string, string> };
+type Route = { route: string; rewrite?: string; headers?: Record<string, string> };
 type StaticWebAppConfig = {
   routes: Route[];
   globalHeaders: Record<string, string>;
   mimeTypes: Record<string, string>;
+  responseOverrides: Record<string, { rewrite: string }>;
 };
 
 const config = JSON.parse(readFileSync('public/staticwebapp.config.json', 'utf8')) as StaticWebAppConfig;
@@ -35,7 +36,17 @@ describe('Azure Static Web Apps response policy', () => {
     expect(config.globalHeaders['Content-Security-Policy']).toContain("default-src 'self'");
     expect(config.globalHeaders['Content-Security-Policy']).toContain('connect-src \'self\' https://api.sociobot.in');
     expect(config.globalHeaders['Content-Security-Policy']).toContain("frame-ancestors 'none'");
+    expect(config.globalHeaders['Content-Security-Policy']).not.toContain("'unsafe-inline'");
     expect(config.globalHeaders['Permissions-Policy']).toContain('camera=()');
     expect(config.globalHeaders['X-Frame-Options']).toBe('DENY');
+  });
+
+  test('serves the demo route and a designed HTTP 404 response', () => {
+    expect(route('/demo').rewrite).toBe('/index.html');
+    expect(route('/demo/').rewrite).toBe('/index.html');
+    expect(config.responseOverrides['404'].rewrite).toBe('/404.html');
+    const notFound = readFileSync('public/404.html', 'utf8');
+    expect(notFound).toContain('<h1>This page does not exist</h1>');
+    expect(notFound).toContain('href="/"');
   });
 });

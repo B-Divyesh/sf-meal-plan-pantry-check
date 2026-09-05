@@ -47,7 +47,11 @@ export async function verifyLicense(token: string, force = false): Promise<Licen
     try { localStorage.setItem(VERDICT_KEY, JSON.stringify(verdict)); } catch { /* Keep the live verdict for this session. */ }
     return { unlocked: verdict.valid, notice: verdict.valid ? '' : 'License no longer active.', checking: false };
   } catch {
-    return { unlocked: cached?.valid === true, notice: cached ? '' : 'Could not verify while offline. Try again when connected.', checking: false };
+    return {
+      unlocked: cached?.valid === true,
+      notice: cached?.valid === false ? 'License no longer active.' : cached ? '' : 'Could not verify while offline. Try again when connected.',
+      checking: false,
+    };
   }
 }
 

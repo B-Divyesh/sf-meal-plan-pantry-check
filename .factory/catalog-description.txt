@@ -1,0 +1,1 @@
+Check personal recipes against pantry items and build one source-aware shopping list.
