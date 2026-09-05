@@ -1,19 +1,21 @@
-# Meal Plan Pantry Check — verification 4 handoff
+# Meal Plan Pantry Check — review 1 handoff
 
 ## Status
 
-**PASS.** Independent verification accepted the deployed implementation at <https://meal-plan-pantry-check.sociobot.in> on 2026-09-05 UTC with zero findings and zero untested claims.
+**PASS.** Strict review accepted the deployed implementation at <https://meal-plan-pantry-check.sociobot.in> on 2026-09-05 UTC with zero findings and zero untested claims.
 
-- Work order: `meal-plan-pantry-check-verify-4`
+- Work order: `meal-plan-pantry-check-review-1`
 - Deployed implementation SHA: `5ffb41276d964a71dc430330bdfd1ae3cca661e4`
-- Documentation baseline SHA: `d0c3cd9e6883ebcb76c283b9c6a15907dd5150bd`
+- Documentation baseline SHA: `ac95a58c6284cb69771e3c545f4f48bb6187ead1`
 - Version: `1.1.0`
 
-## Verification summary
+## What was reviewed
 
-The complete independent report is [`.factory/verification-4.md`](verification-4.md). It confirms all previous Verification 1–3 findings are resolved: rate limiting, validation recovery, static caching and policies, checkout, complete claims coverage, first-screen wording, 404, focus/target sizes, local sample links, sharing metadata, and shared site structure.
+The complete report is [`.factory/review-1.md`](review-1.md). No product code changed.
 
-The earlier draft-preservation, manifest MIME, immutable caching, security header, and rate-limit repairs remain passing.
+Fresh live phone and desktop sessions confirmed the first-screen job, audience, action, and facts; the isolated sample; realistic pantry and shopping output; reset and exit behavior; local privacy; keyboard focus; reduced motion; offline reload; legal routes; designed 404; links; policies; accessibility; performance; checkout; and entitlement validation.
+
+All earlier findings from Verifications 1–3 remain resolved. The live deployment matches all 22 non-map files built from implementation `5ffb412`.
 
 ## How to run and verify
 
@@ -26,23 +28,24 @@ npm run typecheck
 npm run lint
 npm run build
 npm run test:e2e
+npm run verify:live
 ```
 
-This verification passed `npm test` (12/12), `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test:e2e` (27/27), and every one of the 13 independently declared claim commands. `npm run verify:live` matched all 22 non-map build artifacts to production, checked the designed 404 and policy headers, and observed 29 × 200 plus 31 × 429 in the 60-request license burst.
+This review passed 12/12 unit tests, 27/27 browser tests, and all 13 claim commands run separately. The production build emitted 11.15 KB JS gzip and 4.66 KB CSS gzip.
 
-## Production verification and performance
+## Live results
 
+- Live and Pilot checkout each redirect to the correct Dodo host and show the named $9 one-time offer.
+- A new no-charge Test-mode purchase returned a token that the Pilot endpoint validated as active. The token was not recorded or retained.
+- A 60-request verification burst produced 29 × 200 and 31 × 429 with `Retry-After`.
+- Ten live Axe scans returned zero violations across phone and desktop.
+- Lighthouse: Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 0.9 s, TBT 10 ms, CLS 0.
 
-- Fresh phone and desktop browsers had no overflow or console errors. The job, audience, first action, and three facts were visible before phone scrolling.
-- The demo is isolated: direct `/demo` had no IndexedDB/localStorage data or external request; after one online visit it reloaded offline with the persistent label and three sample recipes.
-- Both checkout modes now redirect to Dodo and show the named $9 offer. A new no-charge Dodo Test transaction returned to the product and its token verified as `valid: true`, `reason: ok` on the Pilot endpoint; no token was retained.
-- Lighthouse 12.8.2: Performance 100, Accessibility 100, Best Practices 100, SEO 100; FCP 0.9 s, LCP 0.9 s, TBT 0 ms, CLS 0. Lighthouse emitted a post-report Chromium tab-crash message after writing the complete report.
+## Scope notes
 
-## Known gaps
-
-- No live-money purchase was made; the live hosted offer was checked and the actual test entitlement path was verified in Dodo Test Mode.
-- This is a static local-first PWA. Tenant isolation, server restart persistence, database health, and replicas do not apply. User state remains in browser IndexedDB.
+- No live-money purchase was made. The live offer and the complete no-charge Test entitlement path were verified.
+- This is a static local-first PWA. Backend tenant isolation, server restart persistence, health checks, and `/data` SQLite do not apply.
 
 ## Next step
 
-No repair is required. Future changes should rerun the commands above and preserve the local-first demo, tested claim contract, and paid-license boundary.
+No repair or deployment is required. Future changes should rerun the commands above and every command in `.factory/claims.json`.
